@@ -9,13 +9,15 @@
 import UIKit
 //import CoreData
 import RealmSwift
+import ChameleonFramework
 
-class TodoListViewController: UITableViewController {
+class TodoListViewController: SwipeTableViewController {
 
     //var itemArray = [Item]()
     var itemArray : Results<Item>?
     let realm = try! Realm()
     
+    @IBOutlet var searchBar: UISearchBar!
     
     var selectedCategory : Category? {
         
@@ -37,9 +39,58 @@ class TodoListViewController: UITableViewController {
         
         print(FileManager.default.urls(for: .documentDirectory, in: .userDomainMask))
        
+        tableView.separatorStyle = .none
+        
+        
+        
         //loadItems()
         
         
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        
+       
+            
+        title = selectedCategory!.name
+        
+        guard let colourHex = selectedCategory?.bgcolor else { fatalError() }
+        
+        //
+        updateNavBar(withHexCode: colourHex)
+        
+        
+                //navigationController?.navigationBar.barTintColor = UIColor(hexString: colourHex)
+        
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        
+        updateNavBar(withHexCode: "1D9BF6")
+        
+        
+    }
+    
+    //MARK: - NAv Bar Setup Methods
+    
+    func updateNavBar(withHexCode colourHexCode: String){
+        
+        guard let navBar = navigationController?.navigationBar else {
+            fatalError("navigation controller does not exist")
+        }
+        
+        
+        
+        if let navBarColor = UIColor(hexString: colourHexCode) {
+            
+            navBar.barTintColor = navBarColor
+            
+            navBar.tintColor = ContrastColorOf(navBarColor, returnFlat: true)
+            
+            navBar.largeTitleTextAttributes = [NSAttributedString.Key.foregroundColor : ContrastColorOf(navBarColor, returnFlat: true)]
+            
+            searchBar.barTintColor = UIColor(hexString: colourHexCode)
+        }
     }
     
     
@@ -51,16 +102,27 @@ class TodoListViewController: UITableViewController {
         
         //let cell = UITableViewCell(style: .default, reuseIdentifier: "ToDoItemCell")
         
-        let cell = tableView.dequeueReusableCell(withIdentifier: "ToDoItemCell", for: indexPath)
+        //let cell = tableView.dequeueReusableCell(withIdentifier: "ToDoItemCell", for: indexPath)
+        
+        
+        
+        let cell = super.tableView(tableView, cellForRowAt: indexPath)
         
         if let item = itemArray?[indexPath.row]{
             cell.textLabel?.text = item.title
             cell.accessoryType = item.done ? .checkmark : .none
+            
+            if let itemBgColour = UIColor(hexString: selectedCategory?.bgcolor ?? "F3F3F3")?.darken(byPercentage:CGFloat(indexPath.row)/CGFloat(itemArray!.count)) {
+                
+                cell.backgroundColor = itemBgColour
+                cell.textLabel?.textColor = ContrastColorOf(itemBgColour, returnFlat: true)
+                
+            }
+            
+            
         } else {
             cell.textLabel?.text = "No Items"
         }
-        
-        
         
         /*
         if item.done == true {
@@ -201,6 +263,30 @@ class TodoListViewController: UITableViewController {
         itemArray = selectedCategory?.items.sorted(byKeyPath: "title", ascending: true)
         tableView.reloadData()
     }
+    
+    
+    //MARK: - delete data from swipe
+    override func updateModel(at indexPath: IndexPath) {
+        
+        if let itemForDeletion = itemArray?[indexPath.row]{
+            
+            do{
+                try realm.write {
+
+                    realm.delete(itemForDeletion)
+
+                }
+                
+                print("item deleted")
+
+            } catch {
+                print("error deleting category \(error)")
+            }
+            
+        }
+    }
+    
+    
     
 //    func loadItems(with request: NSFetchRequest<Item> = Item.fetchRequest(), predicate: NSPredicate? = nil) {
 //

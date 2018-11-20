@@ -9,9 +9,9 @@
 import UIKit
 //import CoreData
 import RealmSwift
+import ChameleonFramework
 
-
-class CategoryViewController: UITableViewController {
+class CategoryViewController: SwipeTableViewController {
 
     let realm = try! Realm()
     
@@ -23,6 +23,12 @@ class CategoryViewController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         loadCategories()
+        
+        tableView.separatorStyle = .none
+
+        
+        //tableView.rowHeight = 80.0
+        
     }
     
     
@@ -32,11 +38,27 @@ class CategoryViewController: UITableViewController {
         return categoryArray?.count ?? 1
     }
     
+    
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
-        let cell = tableView.dequeueReusableCell(withIdentifier: "CategoryCell", for: indexPath)
+        //let cell = tableView.dequeueReusableCell(withIdentifier: "CategoryCell", for: indexPath) as! SwipeTableViewCell
+        
+        let cell = super.tableView(tableView, cellForRowAt: indexPath)
         
         cell.textLabel?.text = categoryArray?[indexPath.row].name ?? "No categories added yet"
+        
+        //cell.delegate = self
+        
+        //cell.backgroundColor = UIColor.randomFlat
+        
+        
+        if let celBgColor = categoryArray?[indexPath.row].bgcolor {
+            //cell.backgroundColor = HexColor(celBgColor)
+            cell.backgroundColor = UIColor(hexString: celBgColor)
+            cell.textLabel?.textColor = ContrastColorOf(UIColor(hexString: celBgColor)!, returnFlat: true)
+        }
+        
+        //cell.backgroundColor = UIColor(hexString: categoryArray?[indexPath.row].bgcolor ?? "F3F3F3")
         
         
         return cell
@@ -79,7 +101,7 @@ class CategoryViewController: UITableViewController {
                 let newCategory = Category()
                 
                 newCategory.name = textField.text!
-                
+                newCategory.bgcolor = UIColor.randomFlat.hexValue()
                 //self.categoryArray.append(newCategory)
                 
                 self.save(category: newCategory)
@@ -126,6 +148,29 @@ class CategoryViewController: UITableViewController {
         tableView.reloadData()
     }
     
+    
+    //MARK: - delete data from swipe
+    override func updateModel(at indexPath: IndexPath) {
+        if let categoryForDeletion = self.categoryArray?[indexPath.row]{
+            do{
+                try self.realm.write {
+
+                    self.realm.delete(categoryForDeletion)
+
+                }
+
+                print("category deleted")
+
+            } catch {
+                print("error deleting category \(error)")
+            }
+
+            //removed this because options.expansionStyle = .destructive will remove the last cell
+            //tableView.reloadData()
+        }
+    }
+    
+    
 //    func loadCategories(with request: NSFetchRequest<Category> = Category.fetchRequest()){
 //        do {
 //            categoryArray = try context.fetch(request)
@@ -136,9 +181,6 @@ class CategoryViewController: UITableViewController {
 //        tableView.reloadData()
 //    }
     
-    
-    
-    
-    
-
 }
+
+
